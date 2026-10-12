@@ -9,3 +9,9 @@ Before planning or making significant changes, read `docs/project-overview.md` (
 - Results must support critical performance analysis for an IEEE-format report (at least 5 pages) and a 10-minute final presentation.
 
 If a request seems to drift away from these requirements, say so before proceeding.
+
+## Chosen project (Phase 1, Oct 2026)
+Hourly electricity load forecasting for the **Ottawa zone** (IESO zonal demand), plus next-day baseload (daily minimum hourly load).
+- Graded ML core, on real data: IESO demand, ECCC / Open-Meteo weather, Ontario holidays → Linear Regression baseline vs Random Forest vs XGBoost (LSTM is a stretch goal). Chronological split: train 2020–2023, validate 2024, test 2025. Metrics: MAE, RMSE, MAPE, R².
+- Scenario layer, using stated assumptions: net load = demand − solar farm (pvlib) − wind farm (power curve) + EV fleet charging, with residential/industrial profiles. It must not block the core deliverable.
+- Team: Kshitij and Victor. Phase 1 deck: `presentation/` (built by `build_deck.js`). Phase 1 rubric: `docs/Phase_1_Rubric.pdf`.
