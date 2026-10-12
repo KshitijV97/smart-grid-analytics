@@ -80,7 +80,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
     { text: "Kshitij  ·  Victor", options: { bold: true, breakLine: true } },
     { text: "ELG 5255 Applied Machine Learning · University of Ottawa · Phase 1 Proposal · October 13, 2026" },
   ], { x: M, y: 5.8, w: 11, h: 0.8, fontSize: 14, color: C.accent1, margin: 0, isTextBox: true });
-  s.addNotes("KSHITIJ (~15 s). Introduce the team and the one-line goal: forecast Ottawa's electricity load so the grid can plan supply ahead of demand.");
+  s.addNotes("KSHITIJ (~10 s). Introduce the team and the one-line goal: forecast Ottawa's electricity load so the grid can plan supply ahead of demand.");
 
   // ---------- 2. Problem & research question ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Introduction" });
@@ -109,41 +109,63 @@ function card(slide, x, y, w, h, fill = C.background2) {
     { text: "Why it matters: a good forecast lets the grid schedule supply, storage and flexible loads (like EV charging) ahead of demand instead of reacting to it.", options: { fontSize: 14, italic: true, color: C.background2 } },
   ], { x: 7.5, y: 1.65, w: 4.95, h: 3.95, valign: "top", margin: 0, isTextBox: true });
   s.addText("Baseload = the minimum level of demand the grid must always serve (we use the daily minimum hourly load).", { x: M, y: 6.1, w: W - 2 * M, h: 0.5, fontSize: 12, italic: true, color: C.text2, margin: 0, isTextBox: true });
-  s.addNotes("KSHITIJ (~40 s). Four drivers move Ottawa's load. Our question: do tree ensembles beat linear regression for hourly demand and next-day baseload? Define baseload as the daily minimum hourly load.");
+  s.addNotes("KSHITIJ (~35 s). Four drivers move Ottawa's load. Our question: do tree ensembles beat linear regression for hourly demand and next-day baseload? Define baseload as the daily minimum hourly load.");
 
-  // ---------- 3. State of the art ----------
+  // ---------- 3. State of the art: evidence ----------
   pres.addSection({ title: "State of the art" });
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "State of the art" });
-  s.addText("State of the art: tree ensembles beat linear models", { placeholder: "title" });
+  s.addText("State of the art: what recent studies found", { placeholder: "title" });
   speaker(s, "Victor");
-  s.addChart(pres.charts.BAR, [{ name: "MAPE (%)", labels: ["Linear Regression", "Decision Tree", "Random Forest"], values: [10, 3, 2] }], {
-    x: M, y: 1.4, w: 5.4, h: 4.1, barDir: "col",
-    showTitle: true, title: "Rawal & Ahmad [2]: MAPE, NSW demand (lower is better)", titleFontSize: 13, titleColor: HEX.dk2, titleFontFace: "+mn-lt",
-    chartColors: [HEX.accent4, HEX.accent2, HEX.accent1], varyColors: true,
-    showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0"%"', dataLabelFontSize: 12, dataLabelColor: HEX.dk1, dataLabelFontFace: "+mn-lt",
-    catAxisLabelColor: HEX.dk1, valAxisLabelColor: HEX.dk1, catAxisLabelFontSize: 12, valAxisLabelFontSize: 11, catAxisLabelFontFace: "+mn-lt", valAxisLabelFontFace: "+mn-lt",
-    valGridLine: { color: "D9E2E1", size: 0.5 }, catGridLine: { style: "none" }, showLegend: false, valAxisMaxVal: 12,
+  s.addChart(pres.charts.BAR, [{ name: "MAPE (%)", labels: ["Deep learning reg.", "LightGBM", "Random Forest", "XGBoost", "SVR", "AdaBoost"], values: [2.90, 3.07, 3.22, 3.45, 4.90, 5.70] }], {
+    x: M, y: 1.35, w: 4.9, h: 4.55, barDir: "bar", catAxisOrientation: "maxMin",
+    showTitle: true, title: "Ibrahim et al. [3]: 1-h-ahead MAPE (lower is better)", titleFontSize: 12, titleColor: HEX.dk2, titleFontFace: "+mn-lt",
+    chartColors: [HEX.accent4, HEX.accent2, HEX.accent1, HEX.accent1, HEX.accent4, HEX.accent4], varyColors: true,
+    showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: '0.00"%"', dataLabelFontSize: 11, dataLabelColor: HEX.dk1, dataLabelFontFace: "+mn-lt",
+    catAxisLabelColor: HEX.dk1, valAxisLabelColor: HEX.dk1, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10, catAxisLabelFontFace: "+mn-lt", valAxisLabelFontFace: "+mn-lt",
+    valGridLine: { color: "D9E2E1", size: 0.5 }, catGridLine: { style: "none" }, showLegend: false, valAxisMaxVal: 7, valAxisMinVal: 0,
   });
-  s.addText("Same study: R² 0.31 (LR) → 0.93 (DT) → 0.97 (RF); MAE 802 → 220 → 159 MW.", { x: M, y: 5.55, w: 5.4, h: 0.5, fontSize: 12, italic: true, color: C.text2, margin: 0, isTextBox: true });
-  const sota = [
-    ["[1] Gökçe & Duman, IEEE IISEC 2022", "Hourly Turkish demand with temperature, holidays and a 24 h lag. RF and XGBoost beat Linear Regression; RF had the lowest error."],
-    ["[2] Rawal & Ahmad, IEEE ICPC2T 2022", "Half-hourly NSW (Australia) demand, 2020. Non-parametric models beat parametric ones; Random Forest was best."],
-    ["[3] Kong et al., IEEE Trans. Smart Grid 2019", "LSTM recurrent networks for short-term residential load. Deep sequence models win at noisy, household-level scale."],
+  s.addText("Orange = the two models we propose. RF reaches R² 0.92 in 7.1 s of training vs 20 min for the deep model.", { x: M, y: 5.95, w: 4.9, h: 0.55, fontSize: 11, italic: true, color: C.text2, margin: 0, isTextBox: true });
+  const th = (t) => ({ text: t, options: { bold: true, color: HEX.lt1, fill: { color: HEX.dk2 } } });
+  const studies = [
+    [th("Study"), th("Data"), th("Result")],
+    ["[1] Gökçe & Duman, IEEE IISEC 2022", "Turkey, hourly, 2018–21 (35,064 h); temperature, holidays, 24 h lag", "RMSE: LR 2348 · RF 2075 · XGBoost 2039. RF best on absolute and % error"],
+    ["[2] Rawal & Ahmad, IEEE ICPC2T 2022", "New South Wales, Australia, 2020; 8 regression models", "Non-parametric beat parametric models; Random Forest best"],
+    ["[3] Ibrahim et al., Energies 2022", "Panama, hourly, 2016–19 (33,600 h); temperature, humidity, lags", "Deep regression R² 0.93; RF and LightGBM R² 0.92; 24 h-ahead Bi-LSTM only 0.40"],
+    ["[4] Kong et al., IEEE Trans. Smart Grid 2019", "Household smart-meter data", "LSTM beats rival methods for individual homes"],
   ];
-  for (let i = 0; i < sota.length; i++) {
-    const y = 1.4 + i * 1.22;
-    card(s, 6.4, y, 6.33, 1.08);
+  s.addTable(studies, {
+    x: 5.85, y: 1.35, w: 6.88, colW: [2.05, 2.35, 2.48], fontSize: 11, color: HEX.dk1, valign: "middle",
+    border: { type: "solid", pt: 0.5, color: "D9E2E1" }, fill: { color: HEX.lt1 }, rowH: [0.4, 1.0, 0.85, 1.0, 0.7], margin: [0.04, 0.08, 0.04, 0.08],
+  });
+  s.addNotes("VICTOR (~40 s). Four studies. Gökçe & Duman (IEEE, Turkey): Random Forest and XGBoost beat Linear Regression; RMSE drops from 2348 to about 2040. Rawal & Ahmad (IEEE, Australia): non-parametric models win, Random Forest best. Ibrahim et al. (Panama): deep regression is best at MAPE 2.9%, but Random Forest is almost as good (3.2%, R² 0.92) and trains in seconds instead of 20 minutes. Kong et al.: LSTMs shine at household level.");
+
+  // ---------- 4. State of the art: lessons ----------
+  s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "State of the art" });
+  s.addText("What the literature tells our design", { placeholder: "title" });
+  speaker(s, "Victor");
+  const lessons = [
+    [fa.FaHistory, "Lagged load + temperature drive accuracy", "Previous-week and previous-day load and temperature were the top predictors [3]; [1] used a 24 h lag.", "Lags t-1, t-24, t-168; temperature, humidity"],
+    [fa.FaCalendarAlt, "Calendar effects matter", "Holiday and working-day flags were inputs in both [1] and [3].", "Ontario statutory-holiday and workday flags"],
+    [fa.FaTree, "Tree ensembles: near-best accuracy, low cost", "RF/XGBoost beat LR in [1], [2], [3], within ~0.3 pp MAPE of deep learning [3].", "LR baseline vs Random Forest [9] vs XGBoost [10]"],
+    [fa.FaExclamationTriangle, "Known weak spots", "Summer extremes and COVID-19 hurt [1]; 24 h multi-step is much harder [3].", "Errors by season and horizon; flag 2020 COVID period"],
+  ];
+  for (let i = 0; i < lessons.length; i++) {
+    const y = 1.35 + i * 1.12;
+    card(s, M, y, 7.4, 0.98);
+    await badge(s, lessons[i][0], M + 0.2, y + 0.17, 0.64, HEX.accent2, HEX.lt1, "lesson" + i);
     s.addText([
-      { text: sota[i][0], options: { bold: true, fontSize: 14, color: C.text2, breakLine: true } },
-      { text: sota[i][1], options: { fontSize: 13, color: C.text1 } },
-    ], { x: 6.6, y: y + 0.06, w: 5.95, h: 0.96, valign: "middle", margin: 0, isTextBox: true });
+      { text: lessons[i][1], options: { bold: true, fontSize: 14, color: HEX.dk2, breakLine: true } },
+      { text: lessons[i][2], options: { fontSize: 12, color: HEX.dk1 } },
+    ], { x: M + 1.05, y: y + 0.04, w: 6.2, h: 0.9, valign: "middle", margin: 0, isTextBox: true });
+    s.addShape(pres.shapes.RIGHT_ARROW, { x: M + 7.5, y: y + 0.36, w: 0.3, h: 0.26, fill: { color: C.accent1 }, line: { color: C.accent1 } });
+    card(s, M + 7.9, y, 4.23, 0.98, C.text2);
+    s.addText(lessons[i][3], { x: M + 8.1, y: y + 0.04, w: 3.85, h: 0.9, fontSize: 13, bold: true, color: C.background1, valign: "middle", margin: 0, isTextBox: true });
   }
-  card(s, 6.4, 5.1, 6.33, 1.25, C.text2);
   s.addText([
-    { text: "Gap we address: ", options: { bold: true, color: C.accent1 } },
-    { text: "these studies forecast a whole country or state. None targets a single city zone like Ottawa, or asks what renewables and EV fleets do to the net load that remains to be served.", options: { color: C.background1 } },
-  ], { x: 6.6, y: 5.18, w: 5.95, h: 1.1, fontSize: 13, valign: "middle", margin: 0, isTextBox: true });
-  s.addNotes("VICTOR (~50 s). Two IEEE comparisons show the same pattern: tree ensembles clearly beat linear regression for short-term demand (MAPE 10% to 2% in Rawal & Ahmad). Kong et al. show LSTMs for residential load; we keep that as a stretch goal. The gap: a city-zone forecast plus a net-load view of renewables and EVs.");
+    { text: "Gap we address: ", options: { bold: true, color: HEX.accent3 } },
+    { text: "all four forecast a country, state or single home. None targets a city zone like Ottawa, or what solar, wind and EV fleets do to the net load left to serve." },
+  ], { x: M, y: 5.95, w: W - 2 * M, h: 0.6, fontSize: 13, color: HEX.dk1, valign: "middle", margin: 0, isTextBox: true });
+  s.addNotes("VICTOR (~35 s). Each lesson maps to a design choice on the right. Lags and temperature are the strongest predictors, so we use them. Holidays matter, so we flag Ontario holidays. Tree ensembles get within about a third of a percentage point of deep learning at a fraction of the cost, so they are our core models. And we will report errors by season and horizon, because that is where earlier models failed. The gap: nobody has done this for a single city zone with a renewables and EV net-load view.");
 
   // ---------- 4. Proposed solution ----------
   pres.addSection({ title: "Proposal" });
@@ -174,7 +196,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
     { text: "Net load = forecast demand − solar farm − wind farm + EV fleet charging", options: { fontSize: 16, bold: true, color: C.background1, breakLine: true } },
     { text: "Solar and wind come from weather forecasts through physical models; EV charging from workday and holiday schedules. The result shows, hour by hour, how much dispatchable supply is needed and when flexible EV charging can be shifted.", options: { fontSize: 13, color: C.background2 } },
   ], { x: M + 1.4, y: 4.6, w: W - 2 * M - 1.7, h: 1.8, valign: "middle", margin: 0, isTextBox: true });
-  s.addNotes("KSHITIJ (~45 s). Steps 1-4 are the graded ML core, on real data. Step 5 is the smart-grid layer: we subtract assumed solar and wind farms and add EV fleet charging to get net load, the load that dispatchable supply must cover. This gives a dynamic load-distribution view without needing private utility data.");
+  s.addNotes("KSHITIJ (~40 s). Steps 1-4 are the graded ML core, on real data. Step 5 is the smart-grid layer: we subtract assumed solar and wind farms and add EV fleet charging to get net load, the load that dispatchable supply must cover. This gives a dynamic load-distribution view without needing private utility data.");
 
   // ---------- 5. Data: real vs assumed ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Proposal" });
@@ -184,11 +206,11 @@ function card(slide, x, y, w, h, fill = C.background2) {
   const tag = (real) => ({ text: real ? "REAL" : "ASSUMED", options: { bold: true, color: real ? HEX.dk2 : HEX.dk1, fill: { color: real ? HEX.accent5 : HEX.accent1 }, align: "center" } });
   const rows = [
     [hdr("Component"), hdr("Source"), hdr("Resolution"), hdr("Type")],
-    ["Ottawa-zone electricity demand (target)", "IESO Hourly Zonal Demand Report, Ottawa zone [4]", "Hourly, 2020–2025", tag(true)],
-    ["Temperature, humidity", "ECCC historical climate data, Ottawa station [5]", "Hourly", tag(true)],
-    ["Solar irradiance, 100 m wind speed", "Open-Meteo historical weather API [6]", "Hourly", tag(true)],
+    ["Ottawa-zone electricity demand (target)", "IESO Hourly Zonal Demand Report, Ottawa zone [5]", "Hourly, 2020–2025", tag(true)],
+    ["Temperature, humidity", "ECCC historical climate data, Ottawa station [6]", "Hourly", tag(true)],
+    ["Solar irradiance, 100 m wind speed", "Open-Meteo historical weather API [7]", "Hourly", tag(true)],
     ["Holidays, workdays", "Ontario statutory holiday calendar", "Daily", tag(true)],
-    ["Solar farm output", "pvlib PV model [7] driven by real irradiance", "Hourly", tag(false)],
+    ["Solar farm output", "pvlib PV model [8] driven by real irradiance", "Hourly", tag(false)],
     ["Wind farm output", "Generic turbine power curve driven by real wind speed", "Hourly", tag(false)],
     ["Residential vs. industrial split, EV fleet load", "Calendar-based profiles (next slide)", "Hourly", tag(false)],
   ];
@@ -197,7 +219,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
     border: { type: "solid", pt: 0.5, color: "D9E2E1" }, fill: { color: HEX.lt1 }, rowH: 0.52, margin: [0.04, 0.1, 0.04, 0.1],
   });
   s.addText("Split: train 2020–2023 · validate 2024 · test 2025 (chronological, no shuffling, so no future data leaks into training).", { x: M, y: 5.85, w: W - 2 * M, h: 0.5, fontSize: 14, italic: true, color: C.text2, margin: 0, isTextBox: true });
-  s.addNotes("VICTOR (~35 s). Everything the ML model learns from is real public data: IESO zonal demand for Ottawa, ECCC and Open-Meteo weather, the holiday calendar. Only the scenario layer uses assumptions, and we label them. Chronological split avoids leakage.");
+  s.addNotes("VICTOR (~30 s). Everything the ML model learns from is real public data: IESO zonal demand for Ottawa, ECCC and Open-Meteo weather, the holiday calendar. Only the scenario layer uses assumptions, and we label them. Chronological split avoids leakage.");
 
   // ---------- 6. Assumptions ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Proposal" });
@@ -219,7 +241,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
     s.addText(asm[i][1], { x: x + 1.05, y: y + 0.25, w: cw - 1.3, h: 0.65, fontSize: 17, bold: true, color: C.text2, valign: "middle", margin: 0, isTextBox: true });
     s.addText(asm[i][2], { x: x + 0.25, y: y + 1.0, w: cw - 0.5, h: ch - 1.15, fontSize: 13, color: C.text1, valign: "top", margin: 0, isTextBox: true });
   }
-  s.addNotes("KSHITIJ (~35 s). Where no public city-level data exists we make simple physical or calendar-based assumptions: a 10 MW solar farm via pvlib, a 20 MW wind farm via a standard power curve, residential load tied to temperature, industrial load tied to workdays, and a 300-vehicle EV fleet charging overnight. All are parameters, so we can run what-if scenarios.");
+  s.addNotes("KSHITIJ (~30 s). Where no public city-level data exists we make simple physical or calendar-based assumptions: a 10 MW solar farm via pvlib, a 20 MW wind farm via a standard power curve, residential load tied to temperature, industrial load tied to workdays, and a 300-vehicle EV fleet charging overnight. All are parameters, so we can run what-if scenarios.");
 
   // ---------- 7. Models & evaluation ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Proposal" });
@@ -228,8 +250,8 @@ function card(slide, x, y, w, h, fill = C.background2) {
   const models = [
     ["Persistence / seasonal naive", "Floor every model must beat: demand(t+1) = demand(t), or same hour last week"],
     ["Linear Regression", "Interpretable baseline; shows how much is linear in temperature and calendar"],
-    ["Random Forest", "Bagged trees; captures nonlinear temperature response (U-shaped heating/cooling)"],
-    ["XGBoost", "Gradient-boosted trees; strongest model in the literature for tabular load data [1]"],
+    ["Random Forest", "Bagged trees [9]; captures the nonlinear (U-shaped) heating/cooling response"],
+    ["XGBoost", "Gradient-boosted trees [10]; lowest RMSE of the three models in [1]"],
   ];
   for (let i = 0; i < models.length; i++) {
     const y = 1.4 + i * 1.08;
@@ -239,7 +261,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
       { text: models[i][1], options: { fontSize: 13, color: i >= 2 ? HEX.lt1 : HEX.dk1 } },
     ], { x: M + 0.25, y: y + 0.05, w: 6.1, h: 0.85, valign: "middle", margin: 0, isTextBox: true });
   }
-  s.addText("Stretch goal: LSTM sequence model [3] if time allows.", { x: M, y: 5.8, w: 6.6, h: 0.45, fontSize: 13, italic: true, color: C.text2, margin: 0, isTextBox: true });
+  s.addText("Stretch goal: LSTM sequence model [4] if time allows.", { x: M, y: 5.8, w: 6.6, h: 0.45, fontSize: 13, italic: true, color: C.text2, margin: 0, isTextBox: true });
   const metrics = [["MAE", "MW"], ["RMSE", "MW"], ["MAPE", "%"], ["R²", "fit"]];
   s.addText("Evaluation on the unseen 2025 test year", { x: 7.6, y: 1.4, w: 5.1, h: 0.45, fontSize: 17, bold: true, color: C.text2, margin: 0, isTextBox: true });
   for (let i = 0; i < metrics.length; i++) {
@@ -254,7 +276,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
     { text: "Critical analysis: ", options: { bold: true } },
     { text: "errors by season, peak hours and holidays; feature importance; residual plots. Then net-load error after adding the solar, wind and EV scenarios." },
   ], { x: 7.6, y: 5.0, w: 5.1, h: 1.25, fontSize: 13, color: C.text1, valign: "top", margin: 0, isTextBox: true });
-  s.addNotes("VICTOR (~35 s). Four models from naive to XGBoost, all trained on the same features and split. Metrics: MAE, RMSE, MAPE and R² on the 2025 test year, broken down by season, peaks and holidays so we can analyse where each model fails.");
+  s.addNotes("VICTOR (~30 s). Four models from naive to XGBoost, all trained on the same features and split. Metrics: MAE, RMSE, MAPE and R² on the 2025 test year, broken down by season, peaks and holidays so we can analyse where each model fails.");
 
   // ---------- 8. Feasibility & timeline ----------
   pres.addSection({ title: "Plan" });
@@ -288,7 +310,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
       { text: tl[i][1], options: { color: HEX.dk1 } },
     ], { x: tx + 0.6, y: y - 0.05, w: 5.0, h: 0.72, fontSize: 14, valign: "top", margin: 0, isTextBox: true });
   }
-  s.addNotes("KSHITIJ (~35 s). Data is public and small enough for a laptop; the core ML does not depend on the scenarios, and we have a fallback to Ontario-wide data. Timeline runs to the Dec 8 presentation and Dec 14 report.");
+  s.addNotes("KSHITIJ (~25 s). Data is public and small enough for a laptop; the core ML does not depend on the scenarios, and we have a fallback to Ontario-wide data. Timeline runs to the Dec 8 presentation and Dec 14 report.");
 
   // ---------- 9. Team & AI use ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Plan" });
@@ -318,22 +340,25 @@ function card(slide, x, y, w, h, fill = C.background2) {
     { text: "Our own work: ", options: { bold: true, color: HEX.accent1 } },
     { text: "choice of problem, papers, data sources and methods. We checked every number against the cited papers and are responsible for all content.", options: { color: HEX.lt1 } },
   ], { x: 7.15, y: 2.55, w: 5.35, h: 3.6, fontSize: 14, valign: "top", paraSpaceAfter: 10, margin: 0, isTextBox: true });
-  s.addNotes("Either presenter (~20 s). Who did what, and how AI tools were used. Make sure this matches what you actually did before presenting.");
+  s.addNotes("Either presenter (~15 s). Who did what, and how AI tools were used. Make sure this matches what you actually did before presenting.");
 
   // ---------- 10. References ----------
   s = pres.addSlide({ masterName: "CONTENT", sectionTitle: "Plan" });
   s.addText("References", { placeholder: "title" });
   const refs = [
-    "[1] Gökçe and Duman, “Performance Comparison of Simple Regression, Random Forest and XGBoost Algorithms for Forecasting Electricity Demand,” in Proc. 3rd Int. Informatics and Software Engineering Conf. (IISEC), Ankara, 2022. doi: 10.1109/IISEC56263.2022.9998213.",
-    "[2] Rawal and Ahmad, “A Comparative Analysis of Supervised Machine Learning Algorithms for Electricity Demand Forecasting,” in Proc. 2nd Int. Conf. Power, Control and Computing Technologies (ICPC2T), 2022, pp. 1–6. doi: 10.1109/ICPC2T53885.2022.9776960.",
-    "[3] W. Kong, Z. Y. Dong, Y. Jia, D. J. Hill, Y. Xu and Y. Zhang, “Short-Term Residential Load Forecasting Based on LSTM Recurrent Neural Network,” IEEE Trans. Smart Grid, vol. 10, no. 1, pp. 841–851, 2019. doi: 10.1109/TSG.2017.2753802.",
-    "[4] Independent Electricity System Operator (IESO), “Hourly Zonal Demand Report.” [Online]. Available: https://reports-public.ieso.ca/public/DemandZonal/",
-    "[5] Environment and Climate Change Canada, “Historical Climate Data.” [Online]. Available: https://climate.weather.gc.ca/",
-    "[6] Open-Meteo, “Historical Weather API.” [Online]. Available: https://open-meteo.com/en/docs/historical-weather-api",
-    "[7] W. F. Holmgren, C. W. Hansen and M. A. Mikofski, “pvlib python: a python package for modeling solar energy systems,” J. Open Source Software, vol. 3, no. 29, p. 884, 2018. doi: 10.21105/joss.00884.",
+    "[1] M. M. Gökçe and E. Duman, “Performance Comparison of Simple Regression, Random Forest and XGBoost Algorithms for Forecasting Electricity Demand,” in Proc. 3rd Int. Informatics and Software Engineering Conf. (IISEC), Ankara, Turkey, 2022. doi: 10.1109/IISEC56263.2022.9998213.",
+    "[2] K. Rawal and A. Ahmad, “A Comparative Analysis of Supervised Machine Learning Algorithms for Electricity Demand Forecasting,” in Proc. 2nd Int. Conf. Power, Control and Computing Technologies (ICPC2T), 2022, pp. 1–6. doi: 10.1109/ICPC2T53885.2022.9776960.",
+    "[3] B. Ibrahim, L. Rabelo, E. Gutierrez-Franco and N. Clavijo-Buritica, “Machine Learning for Short-Term Load Forecasting in Smart Grids,” Energies, vol. 15, no. 21, art. 8079, 2022. doi: 10.3390/en15218079.",
+    "[4] W. Kong, Z. Y. Dong, Y. Jia, D. J. Hill, Y. Xu and Y. Zhang, “Short-Term Residential Load Forecasting Based on LSTM Recurrent Neural Network,” IEEE Trans. Smart Grid, vol. 10, no. 1, pp. 841–851, 2019. doi: 10.1109/TSG.2017.2753802.",
+    "[5] Independent Electricity System Operator (IESO), “Hourly Zonal Demand Report.” [Online]. Available: https://reports-public.ieso.ca/public/DemandZonal/",
+    "[6] Environment and Climate Change Canada, “Historical Climate Data.” [Online]. Available: https://climate.weather.gc.ca/",
+    "[7] Open-Meteo, “Historical Weather API.” [Online]. Available: https://open-meteo.com/en/docs/historical-weather-api",
+    "[8] W. F. Holmgren, C. W. Hansen and M. A. Mikofski, “pvlib python: a python package for modeling solar energy systems,” J. Open Source Software, vol. 3, no. 29, p. 884, 2018. doi: 10.21105/joss.00884.",
+    "[9] L. Breiman, “Random Forests,” Machine Learning, vol. 45, no. 1, pp. 5–32, 2001. doi: 10.1023/A:1010933404324.",
+    "[10] T. Chen and C. Guestrin, “XGBoost: A Scalable Tree Boosting System,” in Proc. 22nd ACM SIGKDD Int. Conf. Knowledge Discovery and Data Mining, 2016, pp. 785–794. doi: 10.1145/2939672.2939785.",
   ];
   s.addText(refs.map((r, i) => ({ text: r, options: { breakLine: i < refs.length - 1 } })), {
-    x: M, y: 1.35, w: W - 2 * M, h: 5.4, fontSize: 12, color: C.text1, valign: "top", paraSpaceAfter: 8, margin: 0, isTextBox: true,
+    x: M, y: 1.35, w: W - 2 * M, h: 5.5, fontSize: 11, color: C.text1, valign: "top", paraSpaceAfter: 5, margin: 0, isTextBox: true,
   });
 
   // ---------- 11. Q&A ----------

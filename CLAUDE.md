@@ -15,3 +15,4 @@ Hourly electricity load forecasting for the **Ottawa zone** (IESO zonal demand),
 - Graded ML core, on real data: IESO demand, ECCC / Open-Meteo weather, Ontario holidays → Linear Regression baseline vs Random Forest vs XGBoost (LSTM is a stretch goal). Chronological split: train 2020–2023, validate 2024, test 2025. Metrics: MAE, RMSE, MAPE, R².
 - Scenario layer, using stated assumptions: net load = demand − solar farm (pvlib) − wind farm (power curve) + EV fleet charging, with residential/industrial profiles. It must not block the core deliverable.
 - Team: Kshitij and Victor. Phase 1 deck: `presentation/` (built by `build_deck.js`). Phase 1 rubric: `docs/Phase_1_Rubric.pdf`.
+- Literature and Q&A prep: `presentation/STUDY_NOTES.md` (paper cheat-sheet with verified numbers; `phone_notes.txt` is a plain-text copy for the phone). Only cite numbers verified against the paper itself; Rawal & Ahmad [2] numbers are unverified.

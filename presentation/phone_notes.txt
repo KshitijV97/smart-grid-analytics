@@ -1,0 +1,132 @@
+Phase 1 Study Notes: Ottawa Load Forecasting
+
+ELG 5255 · Kshitij & Victor · Presentation Oct 13, 2026 · 5 min + Q&A
+
+The deck is ELG5255_Phase1_Ottawa_Load_Forecasting.pptx. Speaker notes in the deck match the script below.
+
+1. Script and timing (target 4:50)
+
+ - 1 | Title | Kshitij | 0:10 | "We forecast Ottawa's electricity load so the grid can plan supply ahead of demand."
+ - 2 | Problem & research question | Kshitij | 0:35 | Four drivers: weather, calendar, renewables, EVs. Question: do RF and XGBoost beat Linear Regression for hourly demand and next-day baseload? Baseload = daily minimum hourly load.
+ - 3 | State of the art: studies | Victor | 0:40 | Turkey [1]: RMSE 2348 (LR) → 2075 (RF) → 2039 (XGB). Australia [2]: non-parametric wins, RF best. Panama [3]: deep model best at 2.9% MAPE, RF 3.2% but trains in 7 s vs 20 min. Households [4]: LSTM.
+ - 4 | Literature → design | Victor | 0:35 | Lags + temperature are top predictors → our lags. Holidays matter → Ontario holiday flag. Trees are near-best and cheap → our core models. Weak spots → we report errors by season and horizon. Gap: no one does a single city zone + net load.
+ - 5 | Proposed solution | Kshitij | 0:40 | Steps 1–4 = graded ML core on real data. Step 5 = net load = demand − solar − wind + EV charging.
+ - 6 | Data: real vs assumed | Victor | 0:30 | All ML inputs are real public data (IESO, ECCC, Open-Meteo, holidays). Only the scenario layer is assumed, and labelled. Chronological split.
+ - 7 | Scenario assumptions | Kshitij | 0:30 | 10 MW solar (pvlib), 20 MW wind (power curve), residential ~ temperature, industrial ~ workdays, 300 EVs overnight. All adjustable.
+ - 8 | Models & evaluation | Victor | 0:30 | Persistence → LR → RF → XGBoost. MAE, RMSE, MAPE, R² on 2025. Break down by season, peaks, holidays.
+ - 9 | Feasibility & timeline | Kshitij | 0:25 | ~52k rows, laptop-sized, standard libraries, fallback to Ontario-wide data. Timeline to Dec 14.
+ - 10 | Team & AI use | either | 0:15 | Who did what; ChatGPT for draft tables/diagrams; Claude for restructuring, wording, citation checks.
+ - 11–12 | References, Questions | — | — | Don't read aloud.
+
+Rehearse once with a timer. If you run long, cut words on slides 5 and 7 first.
+
+2. The project in 30 seconds
+
+- Problem: Ottawa's hourly electricity demand moves with weather, the calendar, and new loads (EVs) and supply (solar, wind).
+- Core ML (graded): Predict next-hour demand and next-day baseload for the IESO Ottawa zone. Compare Linear Regression (baseline), Random Forest, XGBoost. Train 2020–2023, validate 2024, test 2025.
+- Smart-grid layer: Net load = forecast demand − solar farm − wind farm + EV fleet charging, which shows how much dispatchable supply is needed each hour.
+- Why it's feasible: Free public hourly data (~52,000 rows), standard Python libraries, core doesn't depend on the scenario layer.
+
+3. Paper cheat-sheet (know these cold)
+
+[1] Gökçe & Duman (2022), IEEE IISEC, Ankara: our closest reference (IEEE-indexed)
+- Full title: "Performance Comparison of Simple Regression, Random Forest and XGBoost Algorithms for Forecasting Electricity Demand"
+- Authors: Muhammet Mustafa Gökçe (Turkish Electricity Transmission Corp.), Erkan Duman (Fırat University)
+- Data: Turkey's total hourly consumption, 1 Jan 2018 – 31 Dec 2021, 35,064 records. Consumption from the EXIST Transparency Platform; temperature for the 16 highest-consuming provinces from NASA POWER.
+- Features: month, weekday, hour (one-hot); national holidays (boolean); temperature; consumption 24 h earlier (lag).
+- Split: ~80% train / 20% test.
+- Models: Linear (SGDRegressor, elastic-net); Random Forest (1000 trees); XGBoost tuned with GridSearchCV over trees (1000/1250/1500), learning rate (0.01/0.05/0.1), max depth and min child weight: 18 combinations × 4-fold CV = 72 fits; best CV RMSE 2038.54.
+- Results (RMSE): LR 2348.35, RF 2075.32, XGBoost 2038.54.
+  - XGBoost best on squared error (RMSE).
+  - Random Forest best on absolute and percentage error.
+  - Linear worst on everything.
+- Weakness they note: all models worse in summer, because of COVID-19 recovery and extreme heat.
+- Why we care: same model trio, same kind of features (lags, temperature, holidays) → our method is a reproduction-plus-extension of this IEEE paper.
+
+[2] Rawal & Ahmad (2022), IEEE ICPC2T
+- Full title: "A Comparative Analysis of Supervised Machine Learning Algorithms for Electricity Demand Forecasting"
+- Data: New South Wales (Australia), Jan–Dec 2020, medium-term forecasting.
+- Models (8): linear, multivariate polynomial, SVR, elastic net, gradient boosting, decision tree, random forest, KNN regression.
+- Result: non-parametric models beat parametric ones; Random Forest best.
+- ⚠️ Our first draft listed RF R² 0.97 and MAPE 2% for this paper. A secondary summary (ResearchGate) gives RF R² 0.90. We couldn't open the full text, so the slides only use the qualitative finding. If asked for numbers, say "Random Forest had the highest R²" and don't quote a figure unless you've checked the PDF.
+
+[3] Ibrahim, Rabelo, Gutierrez-Franco & Clavijo-Buritica (2022), Energies (MDPI)
+- Full title: "Machine Learning for Short-Term Load Forecasting in Smart Grids", Energies 15(21), 8079. Open access (CC BY).
+- Data: Panama national grid, Jan 2016 – Oct 2019, 33,600 hourly points. Temperature and humidity from the Panama Canal Authority.
+- Top predictors found: previous-week same-hour load, previous-day same-hour load, temperature. Also used: 24 h average load, working-day/weekend flag, humidity.
+- Split: chronological 80/20 (train to 25 Jan 2019, test to 31 Oct 2019).
+- Results (Table 8):
+
+ - Deep learning regression (3×95 dense) | 0.93 | 50.34 | 2.90% | 1200 s
+ - LightGBM | 0.92 | 51.69 | 3.07% | 0.8 s
+ - Random Forest | 0.92 | 55.05 | 3.22% | 7.1 s
+ - XGBoost | 0.91 | 58.01 | 3.45% | 3.3 s
+ - SVR | 0.81 | 82.38 | 4.90% | 22 s
+ - AdaBoost | 0.75 | 94.57 | 5.70% | 4.8 s
+ - Bi-LSTM (24 h ahead) | 0.40 | 70.54 | 4.25% | 3600 s
+ - GRU (24 h ahead) | 0.31 | 73.26 | 4.43% | 7560 s
+
+- Takeaways: (1) trees are within ~0.3 percentage points of deep learning at a tiny fraction of the cost; (2) 24 h-ahead multi-step is much harder than 1 h-ahead.
+- Caveat: MDPI journal, not IEEE/ACM. That's fine for the review, but our implementation anchors on the IEEE paper [1].
+
+[4] Kong, Dong, Jia, Hill, Xu & Zhang (2019), IEEE Trans. Smart Grid 10(1): 841–851
+- Title: "Short-Term Residential Load Forecasting Based on LSTM Recurrent Neural Network"
+- LSTM on real household smart-meter data; beats rival methods for individual homes, where load is very noisy.
+- Why it's here: it justifies LSTM as our stretch goal and shows deep sequence models pay off at fine, noisy scales.
+
+Method references
+- [9] Breiman (2001), "Random Forests": many decision trees on bootstrap samples with random feature subsets; average their predictions. Reduces variance.
+- [10] Chen & Guestrin (2016), "XGBoost: A Scalable Tree Boosting System", ACM KDD: trees added one at a time, each correcting the previous ones' errors (gradient boosting), with regularisation.
+
+4. Key terms
+
+- STLF (short-term load forecasting): 1 hour to 1 day (sometimes up to a week) ahead.
+- Baseload: the minimum demand that's always there. We define it as the daily minimum hourly load.
+- Net load: demand minus variable renewables (solar, wind), plus controllable loads (EV charging). It's what dispatchable plants must cover.
+- Lag features: past values of the target (t-1 = last hour, t-24 = same hour yesterday, t-168 = same hour last week).
+- HDD/CDD: heating/cooling degree-days (or hours). Degrees below/above ~18 °C; captures the U-shaped load–temperature curve.
+- Persistence baseline: "next hour = this hour". Any useful model has to beat it.
+- MAE: average absolute error (MW). RMSE: penalises big errors more (MW). MAPE: average % error, scale-free. R²: share of variance explained (1 = perfect).
+- Chronological split: train on the past, test on the future; never shuffle time series (avoids leakage).
+- IESO: Independent Electricity System Operator, which runs Ontario's grid and publishes hourly demand for 10 zones including Ottawa.
+
+5. Likely questions and answers
+
+Why Ottawa and not all of Ontario?
+A city zone is the scale where local weather, local holidays and local EV fleets matter, and none of the papers we reviewed works at that scale. IESO publishes hourly demand for the Ottawa zone, so the data exists. If the zonal file turns out incomplete, the same pipeline runs on Ontario-wide demand.
+
+Why not deep learning / LSTM?
+In [3], deep learning was only ~0.3 percentage points better in MAPE than Random Forest but took 20 minutes vs 7 seconds to train. And their LSTM/GRU 24 h-ahead models scored R² of only 0.31–0.40. For a course project, tree ensembles give the best accuracy per unit of effort. LSTM is our stretch goal.
+
+Why Random Forest and XGBoost specifically?
+They were the strongest non-deep models in all three comparison studies [1][2][3]. They handle nonlinear temperature effects and feature interactions without manual feature transforms. And in [1] they split the honours (RF best on absolute/% error, XGBoost on RMSE), so comparing them is an open question worth testing.
+
+Isn't the solar/wind/EV part made up?
+The inputs are real: irradiance and wind speed come from real weather data. The installations are hypothetical (a 10 MW solar farm, a 20 MW wind farm, a 300-vehicle EV fleet) because no public hourly data exists for Ottawa-specific farms or fleets. We label them ASSUMED, use standard physical models (pvlib, turbine power curve), and treat every size as a parameter for what-if analysis. The graded ML doesn't depend on them.
+
+How will you avoid data leakage?
+Chronological split (train 2020–23, validate 2024, test 2025). Lags only use past values. Scalers and encoders are fit on training data only. For next-hour forecasting we use observed weather; for day-ahead we'd note that real deployment would use forecast weather.
+
+What about COVID-19 in 2020?
+[1] saw worse performance in COVID-affected periods. We'll flag 2020 and check whether training with or without it changes test accuracy.
+
+How do you define and forecast baseload?
+Baseload = the minimum hourly load of each day. We forecast it for the next day as a separate daily target, using the same features aggregated to daily level (min/mean temperature, day type, previous days' minimums).
+
+What counts as success?
+All ML models beat persistence. RF/XGBoost beat Linear Regression on MAE, RMSE and MAPE on the 2025 test year. And we can explain where each model fails (season, peaks, holidays).
+
+Which paper are you implementing?
+Our core follows Gökçe & Duman [1] (IEEE IISEC 2022): same three models and the same feature types. We extend it to the Ottawa zone with week lags (from [3]), a baseload target and the net-load scenario layer.
+
+What's the data size?
+6 years × 8,760 hours ≈ 52,600 hourly rows: small enough to train every model on a laptop in seconds to minutes.
+
+How did you use AI?
+ChatGPT helped with summary tables and diagrams in our draft. Claude (via Claude Code) helped restructure the deck for the 5-minute limit, reword slides, check citations against the papers, and draft the scenario assumptions, which we reviewed. We chose the problem, papers and methods, and checked every number against the cited papers.
+
+6. Before you present
+[ ] Check slide 10's contribution lines are accurate for both of you.
+[ ] Open the latest PUB_DemandZonal CSV at reports-public.ieso.ca/public/DemandZonal/ and confirm the "Ottawa" column.
+[ ] If you have the Rawal & Ahmad PDF, note RF's actual R² and MAPE for Q&A.
+[ ] One timed run-through together.
