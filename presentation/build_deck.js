@@ -184,7 +184,7 @@ function card(slide, x, y, w, h, fill = C.background2) {
   const tag = (real) => ({ text: real ? "REAL" : "ASSUMED", options: { bold: true, color: real ? HEX.dk2 : HEX.dk1, fill: { color: real ? HEX.accent5 : HEX.accent1 }, align: "center" } });
   const rows = [
     [hdr("Component"), hdr("Source"), hdr("Resolution"), hdr("Type")],
-    ["Ottawa-zone electricity demand (target)", "IESO public reports: hourly zonal demand [4]", "Hourly, 2020–2025", tag(true)],
+    ["Ottawa-zone electricity demand (target)", "IESO Hourly Zonal Demand Report, Ottawa zone [4]", "Hourly, 2020–2025", tag(true)],
     ["Temperature, humidity", "ECCC historical climate data, Ottawa station [5]", "Hourly", tag(true)],
     ["Solar irradiance, 100 m wind speed", "Open-Meteo historical weather API [6]", "Hourly", tag(true)],
     ["Holidays, workdays", "Ontario statutory holiday calendar", "Daily", tag(true)],
@@ -325,9 +325,9 @@ function card(slide, x, y, w, h, fill = C.background2) {
   s.addText("References", { placeholder: "title" });
   const refs = [
     "[1] Gökçe and Duman, “Performance Comparison of Simple Regression, Random Forest and XGBoost Algorithms for Forecasting Electricity Demand,” in Proc. 3rd Int. Informatics and Software Engineering Conf. (IISEC), Ankara, 2022. doi: 10.1109/IISEC56263.2022.9998213.",
-    "[2] Rawal and Ahmad, “A Comparative Analysis of Supervised Machine Learning Algorithms for Electricity Demand Forecasting,” in Proc. IEEE ICPC2T, 2022. doi: 10.1109/ICPC2T53885.2022.9776960.",
+    "[2] Rawal and Ahmad, “A Comparative Analysis of Supervised Machine Learning Algorithms for Electricity Demand Forecasting,” in Proc. 2nd Int. Conf. Power, Control and Computing Technologies (ICPC2T), 2022, pp. 1–6. doi: 10.1109/ICPC2T53885.2022.9776960.",
     "[3] W. Kong, Z. Y. Dong, Y. Jia, D. J. Hill, Y. Xu and Y. Zhang, “Short-Term Residential Load Forecasting Based on LSTM Recurrent Neural Network,” IEEE Trans. Smart Grid, vol. 10, no. 1, pp. 841–851, 2019. doi: 10.1109/TSG.2017.2753802.",
-    "[4] Independent Electricity System Operator (IESO), “Hourly Zonal Demand Report” and “Ontario Demand Reports.” [Online]. Available: https://reports-public.ieso.ca/public/",
+    "[4] Independent Electricity System Operator (IESO), “Hourly Zonal Demand Report.” [Online]. Available: https://reports-public.ieso.ca/public/DemandZonal/",
     "[5] Environment and Climate Change Canada, “Historical Climate Data.” [Online]. Available: https://climate.weather.gc.ca/",
     "[6] Open-Meteo, “Historical Weather API.” [Online]. Available: https://open-meteo.com/en/docs/historical-weather-api",
     "[7] W. F. Holmgren, C. W. Hansen and M. A. Mikofski, “pvlib python: a python package for modeling solar energy systems,” J. Open Source Software, vol. 3, no. 29, p. 884, 2018. doi: 10.21105/joss.00884.",
