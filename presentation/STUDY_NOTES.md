@@ -7,7 +7,7 @@ The deck is `ELG5255_Phase1_Ottawa_Load_Forecasting.pptx`. Its speaker notes con
 **How to use these notes**
 1. Read Part 1 until you can explain the project in one minute without looking.
 2. Rehearse Part 2 (the script) with a timer; aim for 4:50.
-3. Study Parts 3–7 so you understand *why* every choice was made. This is what wins the Q&A points.
+3. Study Parts 3–7 (including Part 5A on the scenario layer) so you understand *why* every choice was made. This is what wins the Q&A points.
 4. Test yourself with the questions in Part 8.
 
 ---
@@ -97,6 +97,7 @@ Step five is the smart-grid layer. We take the demand forecast, subtract the out
 - *Net load* is a standard concept in grids with renewables. Solar and wind cannot be turned up on command, so operators plan around the load that is left after them.
 - *Dispatchable* generation can be increased or decreased on command (hydro, natural gas). *Variable* generation (solar, wind) depends on the weather.
 - Step 5 is a simulation driven by the ML forecast, not a separate ML model. It connects the forecast to a smart-grid decision.
+- **Step 5 is explained in full, with formulas and a worked example, in Part 5A.**
 
 ### Slide 6: Data (Victor, ~30 s)
 **Say:** "This table separates real data from assumptions. Everything the machine learning model learns from is real and public: IESO's hourly zonal demand for Ottawa, temperature and humidity from Environment and Climate Change Canada, solar irradiance and wind speed from Open-Meteo, and the Ontario holiday calendar. Only the scenario layer uses assumptions, and we label them clearly.
@@ -266,6 +267,128 @@ where G is irradiance on the panels and γ is the temperature coefficient (about
 - Residential: depends on temperature (degree-hours), with morning and evening peaks; higher on weekends and holidays when people are home.
 - Industrial/commercial: a flat block during working hours on workdays; lower on weekends and holidays; minimal overnight.
 - Calibration: the shares are scaled so that, together, they add up to the real IESO Ottawa total for each hour.
+
+---
+
+## Part 5A. Deep dive: the scenario layer (Slide 5, step 5)
+
+This part explains the dark box at the bottom of Slide 5: **"5 · Scenario layer: live supply-demand view"**.
+
+### 5A.1 The idea in one paragraph
+Steps 1–4 answer the question *"How much electricity will Ottawa use next hour?"* Step 5 answers the follow-up question that a grid operator actually cares about: *"After solar and wind have done their part, and after the new EV load is added, how much power do the controllable plants still have to supply, and can we move some of the flexible load to a better time?"* We get that answer by taking the ML demand forecast and adjusting it with three simple models (a solar farm, a wind farm and an EV fleet) driven by real weather and real calendars.
+
+### 5A.2 Why it is on the slide
+- Your original goal was "live supply-demand response and dynamic load distribution". A demand forecast on its own does not show that; step 5 is what turns the forecast into a **smart-grid** result.
+- It covers the parts of the brief that need assumptions (solar, wind, residential vs industrial, EV fleets) without putting the graded ML at risk, because steps 1–4 work without it.
+- "Live" here means **hour by hour**: we replay real historical hours (for example, every hour of 2025) as if each one were happening now. It is not a real-time control system.
+
+### 5A.3 The equation, term by term
+```
+NetLoad(t) = D̂(t) − Solar(t) − Wind(t) + EV(t)
+```
+| Term | Meaning | Where it comes from | Sign and why |
+|---|---|---|---|
+| D̂(t) | Forecast demand for hour t, in MW | Our ML model (steps 1–4) | Starting point |
+| Solar(t) | Output of a hypothetical 10 MW solar farm | pvlib model + real irradiance and temperature | **Minus:** local generation that covers part of the demand |
+| Wind(t) | Output of a hypothetical 20 MW wind farm | Power curve + real 100 m wind speed | **Minus:** same reason |
+| EV(t) | Charging load of a hypothetical 300-vehicle electric fleet | Calendar-based charging schedule | **Plus:** extra demand that does not exist in today's data |
+| NetLoad(t) | What dispatchable plants (hydro, gas) and imports must still supply | Result | — |
+
+**Important:** the EV fleet is treated as a **new** load (a "what if Ottawa electrifies a 300-vehicle fleet?" scenario). That is why it is *added*. If we assumed it was already part of today's demand, adding it would count it twice.
+
+### 5A.4 Two different things happen in step 5 (don't mix them up)
+1. **Scenario additions** change the total. New solar and wind reduce what the grid must supply; a new EV fleet increases it. These produce the *net load*.
+2. **Decomposition ("dynamic load distribution")** does **not** change the total. It splits the forecast demand into residential, industrial/commercial and other shares so you can see *who* is using the power each hour:
+```
+Component_i(t) = Profile_i(t) / Σ_j Profile_j(t) × D̂(t)
+```
+Each profile is a simple shape: residential follows temperature with morning and evening peaks; industrial/commercial is a daytime block on workdays and lower on weekends and holidays. Dividing by the sum and multiplying by D̂(t) is the "calibration" on Slide 7: it forces the shares to add up exactly to the real total.
+
+### 5A.5 How each piece is calculated
+**Solar (10 MW AC).** pvlib computes the sun's position, the irradiance on tilted panels and the cell temperature. A simplified version you can explain on a whiteboard:
+```
+Solar(t) ≈ 10 MW × (G(t) / 1000 W/m²) × [1 − 0.004 × (T_cell(t) − 25 °C)]
+```
+G is irradiance on the panels; the bracket reduces output by about 0.4% for each °C the cells are above 25 °C. Output is 0 at night and close to 0 under snow cover.
+
+**Wind (20 MW).** A common simplified power curve, with cut-in v_ci = 3 m/s, rated v_r = 12 m/s, cut-out 25 m/s:
+```
+Wind(t) = 0                                     if v < 3 or v > 25 m/s
+        = 20 MW × (v³ − 3³) / (12³ − 3³)        if 3 ≤ v < 12 m/s
+        = 20 MW                                 if 12 ≤ v ≤ 25 m/s
+```
+The cube comes from the physics: wind power = ½ ρ A v³.
+
+**EV fleet (300 vehicles).** Each vehicle needs about 60 kWh per workday and charges at about 7.5 kW, so a full charge takes 8 hours:
+- All 300 charging at once: 300 × 7.5 kW = 2,250 kW = **2.25 MW**.
+- Energy per night: 300 × 60 kWh = **18 MWh** (2.25 MW × 8 h).
+- Default (managed) schedule: 22:00–06:00 on workdays; about 30% of that on holidays.
+
+### 5A.6 Worked example (illustrative numbers, not real IESO data)
+Assume the ML model forecasts these demands for three hours:
+
+| Hour | D̂(t) | Weather | Solar | Wind | EV | Net load |
+|---|---|---|---|---|---|---|
+| Summer workday, 13:00 | 1,400 MW | G = 900 W/m², T_cell = 45 °C, v = 5 m/s | 10 × 0.9 × 0.92 = **8.3 MW** | 20 × (125 − 27)/1701 = **1.2 MW** | 0 | 1,400 − 8.3 − 1.2 + 0 = **1,390.5 MW** |
+| Winter workday, 18:00 | 1,700 MW | Dark, v = 10 m/s | **0** | 20 × (1000 − 27)/1701 = **11.4 MW** | 0 (managed) or 2.25 (unmanaged) | **1,688.6 MW** managed, **1,690.9 MW** unmanaged |
+| Winter night, 02:00 | 1,100 MW | Dark, v = 12 m/s | **0** | **20 MW** (rated) | 2.25 MW | 1,100 − 0 − 20 + 2.25 = **1,082.3 MW** |
+
+What to notice:
+- **Solar helps at midday, not at the winter evening peak.** In Ottawa the highest winter loads come after dark, when solar is zero.
+- **Unmanaged EV charging lands on the peak.** If the fleet plugs in when it returns at 18:00, it adds 2.25 MW to the evening peak. Delaying it to after 22:00 moves that load into the overnight valley.
+- **Scale honesty:** together, a 10 MW solar farm and a 20 MW wind farm are at most about 2% of the 1,400 MW in this example. That is deliberate: they are a base case. Because every size is a parameter, the same code can test, for example, 200 MW of solar or 3,000 EVs and show when the effects become large.
+
+### 5A.7 What step 5 produces
+1. **Hourly net-load curve** for every hour of the test year, next to the demand curve.
+2. **Peak net load** (the highest hour) and when it happens: this is what dispatchable capacity must cover.
+3. **Minimum net load** compared with baseload: if net load at night falls below the always-on generation, there is a surplus risk.
+4. **Ramps:** ΔNetLoad(t) = NetLoad(t) − NetLoad(t−1). Large evening ramps (solar dropping while demand rises) are hard for plants to follow; this is the "duck curve" effect from Part 3.
+5. **EV shifting recommendation ("valley filling"):** rank the overnight hours by forecast net load and assign EV charging to the lowest hours first, within charger limits. Report how much the evening peak drops (up to 2.25 MW in the base case) compared with unmanaged charging.
+6. **Load distribution chart:** a stacked chart showing residential, industrial/commercial and EV load each hour. This is a good figure for the final presentation.
+
+### 5A.8 How accurate is the net load?
+- When we replay history, solar and wind come from **observed** weather, so the net-load error is essentially the **demand forecast error** from steps 1–4.
+- In real use, solar and wind would come from **weather forecasts**, which add their own error. We will state this as a limitation.
+- We report net-load MAE and RMSE alongside demand MAE and RMSE.
+
+### 5A.9 What step 5 is not
+- Not a separate machine learning model (it is a rule- and physics-based simulation driven by the ML forecast).
+- Not real-time control of the grid.
+- Not a power-flow simulation (we don't model lines, voltages or transformers).
+- Not based on real solar farms, wind farms or fleets in Ottawa (their sizes are hypothetical; the weather and calendars driving them are real).
+
+### 5A.10 Implementation sketch (for the coding phase)
+```python
+import pandas as pd
+
+def wind_power(v, rated_mw=20, v_ci=3, v_r=12, v_co=25):
+    p = rated_mw * (v**3 - v_ci**3) / (v_r**3 - v_ci**3)
+    p = p.where(v >= v_ci, 0).where(v <= v_co, 0)
+    return p.clip(upper=rated_mw)
+
+# df: hourly rows with demand_forecast, solar_mw (from pvlib), wind_speed_100m, is_workday
+df["wind_mw"] = wind_power(df["wind_speed_100m"])
+df["ev_mw"] = 0.0
+night = df.index.hour.isin([22, 23, 0, 1, 2, 3, 4, 5])
+df.loc[night & df["is_workday"], "ev_mw"] = 2.25
+df.loc[night & ~df["is_workday"], "ev_mw"] = 2.25 * 0.3
+df["net_load"] = df["demand_forecast"] - df["solar_mw"] - df["wind_mw"] + df["ev_mw"]
+df["ramp"] = df["net_load"].diff()
+```
+(The overnight hours span two calendar days, so the final code will assign each night's charging to the workday it serves.)
+
+### 5A.11 How to explain it out loud (about 20 seconds)
+"Step five turns the forecast into a grid decision. We subtract a solar farm and a wind farm, driven by real weather, and add a new electric fleet's charging. What's left is the net load that controllable plants must cover. Hour by hour, it shows the peak to plan for, the evening ramp, and the night-time valley where EV charging can be moved."
+
+### 5A.12 Questions you may get about step 5
+- **Is this machine learning?** The forecast is; step 5 is a simulation that uses the forecast. It shows how the ML output would be used in a smart grid.
+- **Why add EV load instead of subtracting it?** The fleet is a new load that doesn't exist in today's data, so it increases what the grid must supply.
+- **Aren't 10 MW and 20 MW tiny?** Yes, only a few percent of a city zone's load at most; they are a base case. Every size is a parameter, so we can scale them up to see when renewables and EVs really change the picture.
+- **Why does solar not help the winter peak?** Ottawa's winter peak happens after sunset, when solar output is zero. That's exactly the kind of insight the net-load view reveals.
+- **Why shift EV charging to the night?** The night has the lowest load, so charging then avoids raising the peak and uses spare capacity. This is called valley filling, a form of demand response.
+- **What does "dynamic load distribution" mean here?** Splitting the forecast total into residential, industrial/commercial and EV shares each hour, and moving flexible EV load between hours.
+- **Where could the scenario layer go wrong?** Hypothetical sizes, simplified models (no panel shading, a single generic turbine type), and no weather-forecast error in the historical replay. We state these as limitations.
+- **Could you use real renewable data?** IESO publishes province-wide generation by fuel type, but not for hypothetical Ottawa farms. Using real weather with standard physical models is the accepted way to estimate output at a site that doesn't exist yet.
 
 ---
 

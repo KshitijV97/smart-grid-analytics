@@ -80,7 +80,12 @@ KEY FACTS
 
 IF ASKED
 - Is step 5 machine learning? Not in itself: it is a physics- and rule-based simulation driven by our ML forecast. It turns the forecast into a smart-grid decision tool. The graded ML is in steps 1–4.
-- Is this real-time? No. We use historical data to show how the system would work; real-time control is out of scope.`,
+- Is this real-time? No. We replay historical hours one by one to show how the system would work; real-time control is out of scope.
+- Why is EV charging added, not subtracted? The fleet is a new load that is not in today's data, so it increases what the grid must supply.
+- Aren't 10 MW and 20 MW tiny? Yes, only a few percent of the zone's load at most. They are a base case; every size is a parameter we can scale up.
+- Why doesn't solar help the winter peak? Ottawa's winter peak comes after sunset, when solar output is zero.
+- What does 'dynamic load distribution' mean? Splitting the forecast into residential, industrial/commercial and EV shares each hour, and moving flexible EV charging to the night-time valley (valley filling).
+- Full explanation with formulas and a worked example: STUDY_NOTES.md, Part 5A.`,
 
   data: `PRESENTER: Victor · TIME: about 30 seconds
 
