@@ -1,0 +1,71 @@
+# Local stack: Postgres warehouse + Go API + Python ML service + React UI.
+#   docker compose up --build        -> UI at http://localhost:3000
+#   make backfill                    -> pull 2019-12..today from IESO / Open-Meteo / ECCC
+name: smart-grid
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: grid
+      POSTGRES_PASSWORD: grid
+      POSTGRES_DB: grid
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grid -d grid"]
+      interval: 3s
+      retries: 20
+
+  migrate:
+    build: ./services/api
+    command: ["migrate"]
+    environment:
+      DATABASE_URL: postgres://grid:grid@db:5432/grid
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  ml:
+    build: ./services/ml
+    environment:
+      DATABASE_URL: postgresql://grid:grid@db:5432/grid
+      ARTIFACT_STORE: file:///data/models
+    volumes: [models:/data/models]
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  api:
+    build: ./services/api
+    environment:
+      DATABASE_URL: postgres://grid:grid@db:5432/grid
+      ML_URL: http://ml:8000
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    ports: ["8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: ./web
+    ports: ["3000:80"]
+    depends_on: [api]
+
+  # Incremental ingestion every 6 h (IESO publishes hourly with a short delay;
+  # the weather forecast refreshes several times a day).
+  scheduler:
+    image: curlimages/curl:8.16.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        sleep 30
+        while true; do
+          curl -fsS -X POST http://ml:8000/ingest -H 'Content-Type: application/json' -d '{"wait":true}' || true
+          sleep 21600
+        done
+    depends_on: [ml]
+
+volumes:
+  pgdata:
+  models:

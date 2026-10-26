@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ml:
+    name: Python ML service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ml
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: grid
+          POSTGRES_PASSWORD: grid
+          POSTGRES_DB: grid
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U grid" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: services/api/go.mod
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - name: Apply migrations
+        working-directory: services/api
+        run: go run ./cmd/api migrate
+        env:
+          DATABASE_URL: postgres://grid:grid@localhost:5432/grid
+      - run: uv run pytest
+        env:
+          TEST_DATABASE_URL: postgresql://grid:grid@localhost:5432/grid
+
+  api:
+    name: Go API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: services/api/go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: services/api
+      - run: go test -race ./...
+
+  web:
+    name: Web UI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run build
+
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+      - uses: terraform-linters/setup-tflint@v6
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+      - run: tflint --init && tflint --recursive --config "$GITHUB_WORKSPACE/infra/terraform/.tflint.hcl"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker compose build

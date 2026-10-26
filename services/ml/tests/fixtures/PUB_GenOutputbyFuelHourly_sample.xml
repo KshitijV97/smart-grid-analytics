@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="http://www.ieso.ca/schema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <DocHeader><DocTitle>Generator Output by Fuel Type Hourly Report</DocTitle></DocHeader>
+  <DocBody>
+    <Year>2024</Year>
+    <DailyData>
+      <Day>2024-01-01</Day>
+      <HourlyData>
+        <Hour>1</Hour>
+        <FuelTotal><Fuel>NUCLEAR</Fuel><EnergyValue><OutputQuality>0</OutputQuality><Output>9800</Output></EnergyValue></FuelTotal>
+        <FuelTotal><Fuel>WIND</Fuel><EnergyValue><OutputQuality>0</OutputQuality><Output>2150</Output></EnergyValue></FuelTotal>
+        <FuelTotal><Fuel>SOLAR</Fuel><EnergyValue><OutputQuality>0</OutputQuality><Output>0</Output></EnergyValue></FuelTotal>
+      </HourlyData>
+      <HourlyData>
+        <Hour>13</Hour>
+        <FuelTotal><Fuel>WIND</Fuel><EnergyValue><OutputQuality>0</OutputQuality><Output>1900</Output></EnergyValue></FuelTotal>
+        <FuelTotal><Fuel>SOLAR</Fuel><EnergyValue><OutputQuality>0</OutputQuality><Output>210</Output></EnergyValue></FuelTotal>
+        <FuelTotal><Fuel>BIOFUEL</Fuel><EnergyValue><OutputQuality>-1</OutputQuality></EnergyValue></FuelTotal>
+      </HourlyData>
+    </DailyData>
+  </DocBody>
+</Document>

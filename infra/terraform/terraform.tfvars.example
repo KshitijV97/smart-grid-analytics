@@ -1,0 +1,6 @@
+project_id               = "my-gcp-project"
+region                   = "us-east1"
+image_tag                = "latest"
+supabase_organization_id = "my-supabase-org"
+github_repo              = "kshitijv97/smart-grid-analytics"
+# billing_account_id     = "000000-000000-000000"

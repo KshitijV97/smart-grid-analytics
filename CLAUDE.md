@@ -16,3 +16,11 @@ Hourly electricity load forecasting for the **Ottawa zone** (IESO zonal demand),
 - Scenario layer, using stated assumptions: net load = demand − solar farm (pvlib) − wind farm (power curve) + EV fleet charging, with residential/industrial profiles. It must not block the core deliverable.
 - Team: Kshitij and Victor. Phase 1 deck: `presentation/` (built by `build_deck.js`). Phase 1 rubric: `docs/Phase_1_Rubric.pdf`.
 - Literature and Q&A prep: `presentation/STUDY_NOTES.md` (paper cheat-sheet with verified numbers; `phone_notes.txt` is a plain-text copy for the phone). Only cite numbers verified against the paper itself; Rawal & Ahmad [2] numbers are unverified.
+
+## Codebase (Phase 2 implementation)
+See `README.md` for the architecture and `docs/deployment.md` for the free-tier deployment.
+- `services/ml/` (Python, uv): ingestion connectors, warehouse loader, features, algorithm registry, training, forecasting, scenario layer, FastAPI. Tests: `uv run pytest` (set `TEST_DATABASE_URL` for the Postgres integration test). Lint: `uv run ruff check . && uv run mypy`.
+- `services/api/` (Go): gateway, SQL migrations in `internal/db/migrations/` (`go run ./cmd/api migrate`). Tests: `go test ./...`.
+- `web/` (React/TS, TanStack, daisyUI, nivo): `npm run lint && npm run build`.
+- `infra/terraform/`: GCP Cloud Run + GCS + Scheduler, Supabase, Vercel.
+- Test fixtures and `tests/conftest.py` use synthetic data for code paths only; never report numbers from them.
