@@ -56,20 +56,24 @@ cd web          && npm ci && npm run dev      # http://localhost:5173, proxies /
 All free and public; no API keys. Times are stored in UTC (IESO reports use EST hour-ending all
 year, ECCC uses local standard time; both are converted on ingest).
 
-| Source | What | Used for |
-|---|---|---|
-| IESO Hourly Zonal Demand (`PUB_DemandZonal_YYYY.csv`) | MW per zone, incl. Ottawa and Ontario total | Target, load lags |
-| IESO Generator Output by Fuel (`PUB_GenOutputbyFuelHourly_YYYY.xml`) | Ontario wind, solar, hydro, nuclear, gas MW | Lagged renewable features, Overview charts |
-| Open-Meteo historical (ERA5) | Temperature, dew point, humidity, apparent temp., precipitation, snowfall, cloud, wind 10 m / 100 m, global / direct / diffuse irradiance | Weather and solar features (training) |
-| Open-Meteo forecast | Same variables, 16 days ahead | Weather for live forecasts |
-| ECCC Ottawa Intl A (station 49568) | Station temperature, humidity, wind | Cross-checking the reanalysis |
-| `holidays` package (CA-ON) | Statutory holidays + Civic Holiday | Calendar features |
+| Source | What | Used for | Ref. |
+|---|---|---|---|
+| IESO Hourly Zonal Demand (`PUB_DemandZonal_YYYY.csv`) | MW per zone, incl. Ottawa and Ontario total | Target, load lags | [5] |
+| IESO Generator Output by Fuel (`PUB_GenOutputbyFuelHourly_YYYY.xml`) | Ontario wind, solar, hydro, nuclear, gas MW | Lagged renewable features, Overview charts | [11] |
+| Open-Meteo historical (ERA5) | Temperature, dew point, humidity, apparent temp., precipitation, snowfall, cloud, wind 10 m / 100 m, global / direct / diffuse irradiance | Weather and solar features (training) | [7], [13], [14] |
+| Open-Meteo forecast | Same variables, 16 days ahead | Weather for live forecasts | [12], [13] |
+| ECCC Ottawa Intl A (station 49568) | Station temperature, humidity, wind | Cross-checking the reanalysis | [6] |
+| `holidays` package (CA-ON) | Statutory holidays + Civic Holiday | Calendar features | [15] |
 
+Details, time conventions and caveats: [docs/data-sources.md](docs/data-sources.md).
 Weather points: Ottawa for the Ottawa zone; a population-weighted blend of Toronto, Ottawa,
 London and Sudbury for Ontario. Beyond the 16-day weather forecast, forecasts fall back to
 climatology (average weather for that day and hour) and say so.
 
 ## Machine learning
+
+Full write-up with equations and sources: [docs/methodology.md](docs/methodology.md).
+
 
 - **Target:** hourly zonal demand (MW). **Base load** = that day's minimum hourly load;
   **variable load** = hourly load − base load.
@@ -80,16 +84,30 @@ climatology (average weather for that day and hour) and say so.
 - **Split:** chronological, defaults train 2020–2023, validate 2024, test 2025.
   Hyperparameter search and XGBoost early stopping use the validation year only; the test year
   is scored once. Optionally refit on train + validation before scoring test and forecasting.
-- **Algorithms:** Random Forest (primary), XGBoost (secondary), Histogram Gradient Boosting,
-  Extra Trees, Linear Regression (baseline), Ridge, MLP. Add one in
+- **Algorithms:** Random Forest [9] (primary), XGBoost [10] (secondary), Histogram Gradient
+  Boosting [18], Extra Trees [17], Linear Regression (baseline), Ridge, MLP, following the
+  comparison design of Gökçe and Duman [1]. Add one in
   `services/ml/src/gridml/algorithms.py` and it appears in the UI.
 - **Metrics:** MAE, RMSE, MAPE, R², bias — overall and by season, on/off-peak, holidays, hour of
   day, plus daily base-load and daily-peak accuracy, and a seasonal-naive ("same hour last
   week") reference, for the critical analysis in the report.
 - **Forecasting:** a model with horizon *H* predicts *H* hours at once; longer windows are
   recursive. 80 % bands come from validation residuals by hour of day.
-- **Scenario layer** (optional): net load = demand − solar farm (pvlib PVWatts chain) − wind farm
+- **Scenario layer** (optional): net load = demand − solar farm (pvlib [8] PVWatts [23] chain) − wind farm
   (cubic power curve on 100 m wind) + EV fleet charging. Every assumption is a parameter.
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Components, request flows, warehouse schema, security, configuration |
+| [docs/data-sources.md](docs/data-sources.md) | Data sources, time conventions, refresh schedule, data-quality checks |
+| [docs/methodology.md](docs/methodology.md) | Features, chronological split, algorithms, metrics, forecasting, scenario layer, limitations |
+| [docs/api.md](docs/api.md) | HTTP API and command line |
+| [docs/user-guide.md](docs/user-guide.md) | Walk-through of the web UI |
+| [docs/development.md](docs/development.md) | Setup, tests, linting, CI, extending |
+| [docs/deployment.md](docs/deployment.md) | Free-tier deployment with Terraform |
+| [docs/references.md](docs/references.md) | IEEE reference list: primary and secondary sources |
 
 ## Deploying (free tiers)
 
@@ -116,6 +134,32 @@ services/ml/     Python: ingestion, features, training, forecasting, scenario (F
 services/api/    Go: HTTP gateway, warehouse queries, SQL migrations
 web/             React UI
 infra/terraform/ GCP (Cloud Run, GCS, Scheduler, Secret Manager), Supabase, Vercel
-docs/            Course brief, rubric, papers, deployment guide
+docs/            Project documentation (see docs/README.md), course brief, rubric, papers
 presentation/    Phase 1 deck and study notes
 ```
+
+## References
+
+Citations in this README and in `docs/` use IEEE numbering. The full list, split into primary
+sources (data, original methods, software, empirical studies) and secondary sources (reviews,
+tutorials, textbooks), is in [docs/references.md](docs/references.md). Key sources:
+
+[1] M. M. Gökçe and E. Duman, "Performance comparison of simple regression, random forest and
+XGBoost algorithms for forecasting electricity demand," in *Proc. 3rd Int. Informatics and
+Software Engineering Conf. (IISEC)*, Ankara, Turkey, 2022. doi: 10.1109/IISEC56263.2022.9998213.
+
+[5] Independent Electricity System Operator (IESO), "Hourly Zonal Demand Report." [Online].
+Available: https://reports-public.ieso.ca/public/DemandZonal/
+
+[9] L. Breiman, "Random forests," *Mach. Learn.*, vol. 45, no. 1, pp. 5–32, 2001.
+doi: 10.1023/A:1010933404324.
+
+[10] T. Chen and C. Guestrin, "XGBoost: A scalable tree boosting system," in *Proc. 22nd ACM
+SIGKDD Int. Conf. Knowledge Discovery and Data Mining*, 2016, pp. 785–794.
+doi: 10.1145/2939672.2939785.
+
+[14] H. Hersbach *et al.*, "The ERA5 global reanalysis," *Q. J. R. Meteorol. Soc.*, vol. 146,
+no. 730, pp. 1999–2049, 2020. doi: 10.1002/qj.3803.
+
+[27] T. Hong and S. Fan, "Probabilistic electric load forecasting: A tutorial review," *Int. J.
+Forecast.*, vol. 32, no. 3, pp. 914–938, 2016. doi: 10.1016/j.ijforecast.2015.11.011.

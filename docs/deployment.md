@@ -1,5 +1,7 @@
 # Deployment (free tiers)
 
+See [architecture.md](architecture.md) for how the pieces fit together.
+
 | Piece | Service | Free-tier fit |
 |---|---|---|
 | Web UI | Vercel Hobby | Static Vite build, rebuilt on every push |
