@@ -1,8 +1,41 @@
 # smart-grid-analytics
 
-Hourly electricity load forecasting for the **Ottawa zone** (and Ontario as a whole), with
-next-day **base load** (daily minimum) and **variable load** (everything above it). Course
-project for ELG 5255 Applied Machine Learning, University of Ottawa, Fall 2026.
+> **In one sentence:** a web app that learns from past electricity use, weather and holidays to
+> predict how much electricity the Ottawa area (and Ontario as a whole) will need, hour by
+> hour, over the coming days.
+
+## What is this project?
+
+Electricity has to be produced at the same moment it is used, so grid operators and utilities
+need to know in advance how much power people will draw. Predicting that is called **load
+forecasting**. This project applies machine learning to it for the **Ottawa zone** of
+Ontario's power grid, using real, public data from the IESO (Ontario's grid operator).
+
+It answers questions such as:
+
+- **How much electricity will Ottawa use each hour** tomorrow, or over the next two weeks?
+- **What is the base load** (the day's lowest hour, which always-on generation must cover), and
+  how much **variable load** sits above it?
+- **Which model forecasts best:** a simple linear regression, Random Forest or XGBoost? And
+  where do they struggle (holidays, heat waves, cold snaps)?
+- **What if** a solar farm, a wind farm or a fleet of electric vehicles were added? How would
+  that change the load the grid has to serve?
+
+How it works, at a glance:
+
+1. **Collect:** every day, pull hourly demand from IESO, weather from Open-Meteo and
+   Environment Canada, and the Ontario holiday calendar into a database.
+2. **Learn:** train models on 2020–2023, tune them on 2024, and test them once on 2025, so a
+   model is never scored on data it has already seen.
+3. **Forecast:** predict demand with any trained model, with an uncertainty band.
+4. **Explore:** compare models, inspect errors and run what-if scenarios in a web UI.
+
+This is a course project for ELG 5255 Applied Machine Learning at the University of Ottawa
+(Fall 2026), by Kshitij and Victor. Its results feed an IEEE-format report and a final
+presentation. New here? Read [Quick start](#quick-start-local) to run it, then
+[docs/methodology.md](docs/methodology.md) for how the forecasting works.
+
+## The system
 
 - **Data warehouse** (Postgres): IESO demand and fuel-mix output, Open-Meteo weather history and
   forecasts, Environment Canada station data, Ontario holidays. Refreshed daily.
