@@ -60,7 +60,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body []byte) (Resp
 	if err != nil {
 		return Response{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
 	if err != nil {
 		return Response{}, err
@@ -86,7 +86,7 @@ func (c *Client) idToken(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("metadata server: HTTP %d", resp.StatusCode)
 	}

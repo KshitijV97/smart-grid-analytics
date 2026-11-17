@@ -63,20 +63,24 @@ func TestAdminTokenGuardsTraining(t *testing.T) {
 		_, _ = w.Write([]byte(`{"run_id":"r1"}`))
 	})
 
-	resp, err := http.Post(srv.URL+"/api/training-runs", "application/json", strings.NewReader(`{"algorithm":"random_forest"}`))
+	req, _ := http.NewRequestWithContext(t.Context(), http.MethodPost, srv.URL+"/api/training-runs", strings.NewReader(`{"algorithm":"random_forest"}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusUnauthorized || called {
 		t.Fatalf("want 401 without token, got %d (called=%v)", resp.StatusCode, called)
 	}
 
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/training-runs", strings.NewReader(`{"algorithm":"random_forest"}`))
+	req, _ = http.NewRequestWithContext(t.Context(), http.MethodPost, srv.URL+"/api/training-runs", strings.NewReader(`{"algorithm":"random_forest"}`))
 	req.Header.Set("Authorization", "Bearer secret")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 	var out map[string]string
 	_ = json.NewDecoder(resp.Body).Decode(&out)
 	if resp.StatusCode != http.StatusAccepted || out["run_id"] != "r1" {
@@ -86,28 +90,29 @@ func TestAdminTokenGuardsTraining(t *testing.T) {
 
 func TestModelNotFound(t *testing.T) {
 	srv := newTestServer(t, &fakeStore{}, nil)
-	resp, err := http.Get(srv.URL + "/api/models/nope")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusNotFound {
-		t.Fatalf("want 404, got %d", resp.StatusCode)
-	}
-	resp, _ = http.Get(srv.URL + "/api/models/m1")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("want 200, got %d", resp.StatusCode)
+	for path, want := range map[string]int{"/api/models/nope": http.StatusNotFound, "/api/models/m1": http.StatusOK} {
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+path, nil)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != want {
+			t.Fatalf("%s: want %d, got %d", path, want, resp.StatusCode)
+		}
 	}
 }
 
 func TestCORSOnlyForAllowedOrigins(t *testing.T) {
 	srv := newTestServer(t, &fakeStore{}, nil)
 	for origin, want := range map[string]string{"https://app.example": "https://app.example", "https://evil.example": ""} {
-		req, _ := http.NewRequest(http.MethodOptions, srv.URL+"/api/models", nil)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodOptions, srv.URL+"/api/models", nil)
 		req.Header.Set("Origin", origin)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
+		_ = resp.Body.Close()
 		if got := resp.Header.Get("Access-Control-Allow-Origin"); got != want {
 			t.Errorf("origin %s: got %q want %q", origin, got, want)
 		}
@@ -129,10 +134,12 @@ func TestSeriesPicksResolution(t *testing.T) {
 		{"zone=Mars", false, 400},
 	}
 	for _, c := range cases {
-		resp, err := http.Get(srv.URL + "/api/data/series?" + c.query)
+		req, _ := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/api/data/series?"+c.query, nil)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
 		}
+		_ = resp.Body.Close()
 		if resp.StatusCode != c.code {
 			t.Errorf("%s: status %d want %d", c.query, resp.StatusCode, c.code)
 			continue
