@@ -78,3 +78,23 @@ without network access. Never report numbers from them.
 - **New feature:** add it to a group function in `features.py`. Keep lags of anything unknown
   at forecast time at least `horizon_hours`.
 - **Schema change:** never edit an applied migration; add a new numbered file.
+
+## Claude Code plugins
+
+`.claude/settings.json` registers the
+[Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) marketplace
+(MIT licence) and enables its `compound-engineering` plugin at project scope. Every Claude Code
+session on this repo, local or cloud, loads it. It adds skills only (no hooks or MCP servers),
+such as `/compound-engineering:ce-setup`, `ce-plan`, `ce-work`, `ce-code-review` and
+`ce-compound`.
+
+Claude Code may ask you to trust the marketplace the first time it starts in this folder. To
+install it by hand:
+
+```bash
+claude plugin marketplace add EveryInc/compound-engineering-plugin --scope project
+claude plugin install compound-engineering@compound-engineering-plugin --scope project
+```
+
+The plugin tracks the upstream default branch. Remove it by deleting its entries from
+`.claude/settings.json`.
